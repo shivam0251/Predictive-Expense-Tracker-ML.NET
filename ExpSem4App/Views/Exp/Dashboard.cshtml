@@ -1,0 +1,661 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #4bb543;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 20px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.15);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+            background-color: white;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .income-color {
+            color: var(--success-color);
+        }
+
+        .expense-color {
+            color: var(--danger-color);
+        }
+
+        .savings-color {
+            color: var(--primary-color);
+        }
+
+        .category-card {
+            border-radius: 10px;
+            text-align: center;
+            padding: 1.5rem;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            transition: 0.3s;
+            height: 100%;
+            margin-bottom: 1rem;
+        }
+
+            .category-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .category-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .category-type {
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-transform: capitalize;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+
+        .nav-pills .nav-link {
+            color: var(--dark-color);
+        }
+
+        .tab-content {
+            padding: 1.5rem 0;
+        }
+
+        .prediction-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .confidence-badge {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .income-icon {
+            background-color: rgba(75, 181, 67, 0.1);
+            color: var(--success-color);
+        }
+
+        .expense-icon {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+        }
+
+        .trend-card {
+            background: linear-gradient(135deg, #4361ee, #3f37c9);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .trend-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .trend-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .progress-container {
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+        }
+
+        .savings-progress {
+            background-color: var(--success-color);
+        }
+
+        .expense-progress {
+            background-color: var(--danger-color);
+        }
+
+        .trend-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .trend-up {
+            color: var(--success-color);
+        }
+
+        .trend-down {
+            color: var(--danger-color);
+        }
+
+        .view-more-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .month-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .month-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .current-month {
+            font-weight: 600;
+        }
+
+        @@media (max-width: 768px) {
+            .stat-value
+
+        {
+            font-size: 1.8rem;
+        }
+
+        .trend-value {
+            font-size: 1.5rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-wallet me-2"></i> Expense Tracker</h1>
+                    <p class="mb-0">Track, analyze and optimize your spending</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="btn-group">
+                        <button class="btn btn-outline-light" data-timeframe="today">Today</button>
+                        <button class="btn btn-outline-light" data-timeframe="week">This Week</button>
+                        <button class="btn btn-outline-light active" data-timeframe="month">This Month</button>
+                        <button class="btn btn-outline-light" data-timeframe="custom">Custom</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Row -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-label">Total Income</div>
+                    <div class="stat-value income-color" id="totalIncome">₹44,500.00</div>
+                    <div class="text-success small"><i class="fas fa-arrow-up me-1"></i> 23.61% from last month</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-label">Total Expenses</div>
+                    <div class="stat-value expense-color" id="totalExpense">₹44,045.00</div>
+                    <div class="text-danger small"><i class="fas fa-arrow-up me-1"></i> 6.31% from last month</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-label">Savings</div>
+                    <div class="stat-value savings-color" id="totalSavings">₹455.00</div>
+                    <div class="text-primary small"><i class="fas fa-piggy-bank me-1"></i> 1.02% of income</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Savings & Expense Progress -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="trend-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="trend-label">Income Utilization</div>
+                            <div class="trend-value">98.0%</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="trend-label">Savings Rate</div>
+                            <div class="trend-value">1.02%</div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar expense-progress" style="width: 98%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <div class="trend-label">Expenses</div>
+                        <div class="trend-label">Savings</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="trend-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="trend-label">Monthly Change</div>
+                            <div class="trend-value">+₹3,050</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="trend-label">Savings Change</div>
+                            <div class="trend-value">-₹3,885</div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3">
+                        <div class="trend-indicator trend-up">
+                            <i class="fas fa-arrow-up me-1"></i> Income +23.61%
+                        </div>
+                        <div class="trend-indicator trend-down">
+                            <i class="fas fa-arrow-down me-1"></i> Savings -89.5%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8">
+                <!-- Expense Trends -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-chart-line me-2"></i> Expense Trends (Last 6 Months)</span>
+                        <div class="month-selector">
+                            <button class="month-btn"><i class="fas fa-chevron-left"></i></button>
+                            <div class="current-month">June 2025</div>
+                            <button class="month-btn"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="expenseTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Forecast -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-crystal-ball me-2"></i> Expense Forecast
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="prediction-card">
+                                    <h5>July 2025 Prediction</h5>
+                                    <div class="stat-value text-primary my-3">₹46,200.00</div>
+                                    <div class="text-muted mb-3">
+                                        <i class="fas fa-calendar-alt me-2"></i> July 1 - July 31, 2025
+                                    </div>
+                                    <div class="confidence-badge">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        Confidence: ₹43,800.00 - ₹48,600.00
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Prediction Analysis</h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Historical Accuracy</span>
+                                        <strong>92.4%</strong>
+                                    </div>
+                                    <div class="progress mt-1" style="height: 8px;">
+                                        <div class="progress-bar bg-success" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Expected Savings</span>
+                                        <strong>₹1,150.00</strong>
+                                    </div>
+                                    <div class="progress mt-1" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Higher Income Potential</span>
+                                        <span class="text-success">+8.2%</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Expense Reduction Opportunity</span>
+                                        <span class="text-danger">-3.5%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-4">
+                <!-- Recent Transactions -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list-ul me-2"></i> Recent Transactions</span>
+                        <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="recentTransactions">
+                            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="transaction-icon expense-icon">
+                                        <i class="fas fa-shopping-basket"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Groceries & Vegetables</h6>
+                                        <small class="text-muted">Grocery shopping - Today</small>
+                                    </div>
+                                </div>
+                                <span class="text-danger">-₹819.00</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="transaction-icon expense-icon">
+                                        <i class="fas fa-home"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Home Essentials</h6>
+                                        <small class="text-muted">Soap, shampoo, etc. - Today</small>
+                                    </div>
+                                </div>
+                                <span class="text-danger">-₹483.00</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="transaction-icon expense-icon">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Gifts & Celebrations</h6>
+                                        <small class="text-muted">Birthday or gift - Today</small>
+                                    </div>
+                                </div>
+                                <span class="text-danger">-₹776.00</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="transaction-icon expense-icon">
+                                        <i class="fas fa-first-aid"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Medical & Pharmacy</h6>
+                                        <small class="text-muted">Medical or pharmacy bill - Yesterday</small>
+                                    </div>
+                                </div>
+                                <span class="text-danger">-₹477.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Categories -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-tags me-2"></i> Top Expense Categories</span>
+                        <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Groceries & Vegetables</span>
+                                <span>₹8,420.00</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-primary" style="width: 35%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Home Essentials</span>
+                                <span>₹5,780.00</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-info" style="width: 24%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Transportation</span>
+                                <span>₹4,230.00</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-warning" style="width: 18%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Entertainment</span>
+                                <span>₹3,150.00</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-danger" style="width: 13%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Utilities</span>
+                                <span>₹2,870.00</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" style="width: 12%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts when DOM is loaded
+        document.addEventListener("DOMContentLoaded", function() {
+            // Expense Trend Chart
+            const trendCtx = document.getElementById('expenseTrendChart').getContext('2d');
+            const expenseTrendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025', 'Jun 2025'],
+                    datasets: [{
+                        label: 'Monthly Expenses',
+                        data: [48737, 39947, 40399, 50659, 41430, 44045],
+                        borderColor: '#4361ee',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `₹${context.parsed.y.toLocaleString('en-IN')}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + (value/1000).toFixed(0) + 'k';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Setup timeframe buttons
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const timeframe = this.getAttribute('data-timeframe');
+                    updateDashboard(timeframe);
+                });
+            });
+
+            // Setup month navigation
+            document.querySelectorAll('.month-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // In a real app, this would load data for adjacent months
+                    alert('Month navigation would load data for adjacent months in a real application');
+                });
+            });
+
+            // Simulate loading
+            function updateDashboard(timeframe) {
+                // Show loading state
+                document.querySelectorAll('.stat-value').forEach(el => {
+                    el.textContent = 'Loading...';
+                });
+
+                // Simulate API call
+                setTimeout(() => {
+                    document.getElementById('totalIncome').textContent = '₹44,500.00';
+                    document.getElementById('totalExpense').textContent = '₹44,045.00';
+                    document.getElementById('totalSavings').textContent = '₹455.00';
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

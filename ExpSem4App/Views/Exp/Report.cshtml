@@ -1,0 +1,181 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Monthly Report Download</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-light p-4">
+    <div class="container">
+        <h3 class="mb-4 text-primary">Monthly Transaction Report</h3>
+
+        <div class="card p-3 shadow-sm mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="month" class="form-label">Month</label>
+                    <select id="month" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select id="year" class="form-select"></select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end gap-2">
+                    <button class="btn btn-success" onclick="downloadCSV()">Download CSV</button>
+                    <button class="btn btn-danger" onclick="downloadPDF()">Download PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="status" class="alert d-none" role="alert"></div>
+
+        <div class="card shadow-sm p-3">
+            <h5 class="mb-3">This Month's Transactions</h5>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered" id="currentTransactionsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="currentTransBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userId = 4; // Replace this dynamically as needed
+
+        // Populate month/year dropdown
+        window.onload = () => {
+            const monthSelect = document.getElementById("month");
+            const yearSelect = document.getElementById("year");
+            const now = new Date();
+
+            for (let i = 1; i <= 12; i++) {
+                const option = new Option(new Date(2000, i - 1).toLocaleString('default', { month: 'long' }), i);
+                if (i === now.getMonth() + 1) option.selected = true;
+                monthSelect.appendChild(option);
+            }
+
+            for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) {
+                const opt = new Option(y, y);
+                if (y === now.getFullYear()) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+
+            loadCurrentMonthData(); // Load today's month data on page load
+        };
+
+        function showStatus(message, type = "success") {
+            const statusDiv = document.getElementById("status");
+            statusDiv.className = `alert alert-${type}`;
+            statusDiv.innerText = message;
+            statusDiv.classList.remove("d-none");
+        }
+
+        async function fetchReportData(month, year) {
+            const url = `https://localhost:7292/api/ExpApi/GetReport?userId=${userId}&month=${month}&year=${year}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to fetch report");
+            return await response.json();
+        }
+
+        async function downloadCSV() {
+            const month = document.getElementById("month").value;
+            const year = document.getElementById("year").value;
+            try {
+                const data = await fetchReportData(month, year);
+                if (!data.length) return showStatus("No transactions found.", "warning");
+
+                let csv = "Username,Date,Type,Category,Icon,Amount\n";
+                data.forEach(row => {
+                    csv += `${row.username},${new Date(row.date).toLocaleDateString()},${row.type},${row.category},${row.icon},${row.amount}\n`;
+                });
+
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `MonthlyReport_${month}_${year}.csv`;
+                link.click();
+
+                showStatus("CSV report downloaded!");
+            } catch (e) {
+                console.error(e);
+                showStatus("Error downloading CSV.", "danger");
+            }
+        }
+
+        async function downloadPDF() {
+            const month = document.getElementById("month").value;
+            const year = document.getElementById("year").value;
+            try {
+                const data = await fetchReportData(month, year);
+                if (!data.length) return showStatus("No transactions found.", "warning");
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(14);
+                doc.text(`Monthly Report - ${month}/${year}`, 10, 10);
+
+                let y = 20;
+                doc.setFontSize(10);
+                data.forEach((row, index) => {
+                    const line = `${row.username} | ${new Date(row.date).toLocaleDateString()} | ${row.type} | ${row.category} | ${row.amount}`;
+                    doc.text(line, 10, y);
+                    y += 7;
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 10;
+                    }
+                });
+
+                doc.save(`MonthlyReport_${month}_${year}.pdf`);
+                showStatus("PDF report downloaded!");
+            } catch (e) {
+                console.error(e);
+                showStatus("Error downloading PDF.", "danger");
+            }
+        }
+
+        async function loadCurrentMonthData() {
+            const month = new Date().getMonth() + 1;
+            const year = new Date().getFullYear();
+            try {
+                const data = await fetchReportData(month, year);
+                const tbody = document.getElementById("currentTransBody");
+                tbody.innerHTML = "";
+
+                data.forEach(row => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${new Date(row.date).toLocaleDateString()}</td>
+                        <td>${row.type}</td>
+                        <td>${row.icon} ${row.category}</td>
+                        <td>${row.note || "-"}</td>
+                        <td class="text-end">${row.amount.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center">No transactions found for current month.</td></tr>`;
+                }
+            } catch (err) {
+                console.error(err);
+                showStatus("Failed to load current month data.", "danger");
+            }
+        }
+    </script>
+</body>
+</html>

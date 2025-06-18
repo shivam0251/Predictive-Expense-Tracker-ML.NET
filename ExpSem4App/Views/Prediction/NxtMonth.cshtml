@@ -1,0 +1,172 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Expense Forecast</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-chart-line me-2"></i>Expense Forecast</h4>
+            </div>
+            <div class="card-body">
+                <div id="errorContainer" class="alert alert-danger d-none"></div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="prediction-card p-4 mb-4 bg-light rounded">
+                            <h5>Next Month's Prediction</h5>
+                            <div id="predictionAmount" class="display-4 text-primary my-3">₹0.00</div>
+                            <div id="predictionDate" class="text-muted mb-2">
+                                <i class="fas fa-calendar-alt me-2"></i> -
+                            </div>
+                            <div id="confidenceInterval" class="text-info">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Confidence: -
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="expenseTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5><i class="fas fa-history me-2"></i>Historical Data</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="historicalTable">
+                            <thead>
+                                <tr>
+                                    <th>Date (MMM yyyy)</th>
+                                    <th>Total Expense (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadPrediction() {
+            try {
+                const userDataString = localStorage.getItem("Isloguser");
+                const localUser = JSON.parse(userDataString);
+                const userId = localUser?.userId;
+
+                if (!userId) throw new Error("User ID not found");
+
+                const response = await fetch(`https://localhost:7292/api/PredictionApi/NxtMonth?userId=${userId}`);
+                if (!response.ok) throw new Error("Network response was not ok");
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                console.log(data);
+                updatePredictionCard(data);
+                renderTrendChart(data.historicalData);
+                renderHistoricalTable(data.historicalData);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function updatePredictionCard(data) {
+            document.getElementById("predictionAmount").innerText = `₹${data.predictedAmount.toFixed(2)}`;
+            document.getElementById("predictionDate").innerHTML = `<i class="fas fa-calendar-alt me-2"></i>${data.predictionDate}`;
+            document.getElementById("confidenceInterval").innerHTML = `<i class="fas fa-chart-bar me-2"></i>Confidence: ₹${data.confidenceLower.toFixed(2)} - ₹${data.confidenceUpper.toFixed(2)}`;
+        }
+
+        // Helper to format month/year to MMM yyyy (e.g. Jan 2025)
+        function formatMonthYear(month, year) {
+            const date = new Date(year, month - 1);
+            return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+        }
+
+        function renderTrendChart(historicalData) {
+            const ctx = document.getElementById('expenseTrendChart').getContext('2d');
+            const labels = historicalData.map(item => formatMonthYear(item.month, item.year));
+            const values = historicalData.map(item => item.totalExpense);
+
+            if(window.expenseChart) {
+                window.expenseChart.destroy();
+            }
+
+            window.expenseChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Total Expense',
+                        data: values,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Expense (₹)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderHistoricalTable(historicalData) {
+            const tableBody = document.querySelector("#historicalTable tbody");
+            tableBody.innerHTML = "";
+
+            historicalData.forEach(item => {
+                const date = formatMonthYear(item.month, item.year);
+                const amount = item.totalExpense?.toFixed(2) ?? "0.00";
+
+                const row = `<tr>
+                    <td>${date}</td>
+                    <td>₹${amount}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById("errorContainer");
+            errorDiv.textContent = message;
+            errorDiv.classList.remove("d-none");
+        }
+
+        document.addEventListener("DOMContentLoaded", loadPrediction);
+    </script>
+</body>
+</html>
