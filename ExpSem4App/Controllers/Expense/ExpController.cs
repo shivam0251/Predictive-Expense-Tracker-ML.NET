@@ -28,6 +28,12 @@ namespace ExpSem4App.Controllers.Expense
         }
 
         [HttpGet]
+        public IActionResult ViewTransaction()
+        {
+            return View();
+        }
+
+        [HttpGet]
         public IActionResult Category()
         {
             return View();

@@ -1,0 +1,161 @@
+﻿@{
+    ViewData["Title"] = "My Transactions";
+}
+
+<div class="container mt-3">
+    <h3>My Transactions</h3>
+    <table class="table table-hover table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Note</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="transactionsTableBody">
+            <!-- Will be populated by JS -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-labelledby="editTransactionLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <h5>Edit Transaction</h5>
+            <form id="editForm">
+                <input type="hidden" id="editTransactionId" />
+                <div class="mb-3">
+                    <label>Category Id</label>
+                    <input type="number" id="editCategoryId" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label>Amount</label>
+                    <input type="number" id="editAmount" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label>Note</label>
+                    <input type="text" id="editNote" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label>Date</label>
+                    <input type="date" id="editDate" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const userDataString = localStorage.getItem("Isloguser");
+        const data = JSON.parse(userDataString);
+        const userId = data.userId;
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`https://localhost:7292/api/ExpApi/ShowTransaction?userId=${userId}`);
+                const transactions = await response.json();
+                const tableBody = document.getElementById("transactionsTableBody");
+                tableBody.innerHTML = "";
+
+                transactions.forEach(tx => {
+                    const dateStr = new Date(tx.date).toLocaleDateString();
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${tx.transactionId}</td>
+                            <td>${tx.category?.title || ''}</td>
+                            <td>${tx.amount}</td>
+                            <td>${tx.note}</td>
+                            <td>${dateStr}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onClick="showEditModal(${tx.transactionId}, ${tx.categoryId}, ${tx.amount}, '${tx.note}', '${tx.date}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onClick="deleteTransaction(${tx.transactionId})">Delete</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (error) {
+                console.error(error);
+                alert("Error loading transactions.");
+            }
+        }
+
+        async function deleteTransaction(transactionId) {
+            if (!confirm("Are you sure you want to delete this transaction?")) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://localhost:7292/api/ExpApi/DeleteTransaction/${transactionId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert("Deleted successfully");
+                    loadTransactions();
+                } else {
+                    alert("Error deleting transaction");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error deleting transaction");
+            }
+        }
+
+        // Edit Modal Logic
+        function showEditModal(transactionId, categoryId, amount, note, date) {
+            document.getElementById("editTransactionId").value = transactionId;
+            document.getElementById("editCategoryId").value = categoryId;
+            document.getElementById("editAmount").value = amount;
+            document.getElementById("editNote").value = note;
+
+            const parsedDate = new Date(date);
+            const formattedDate = parsedDate.toISOString().split("T")[0];
+            document.getElementById("editDate").value = formattedDate;
+
+            const editModal = new bootstrap.Modal(document.getElementById("editTransactionModal"));
+            editModal.show();
+        }
+
+        document.getElementById("editForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const transaction = {
+                transactionId: parseInt(document.getElementById("editTransactionId").value),
+                categoryId: parseInt(document.getElementById("editCategoryId").value),
+                amount: parseFloat(document.getElementById("editAmount").value),
+                note: document.getElementById("editNote").value,
+                date: new Date(document.getElementById("editDate").value),
+                userId: userId
+            };
+            try {
+                const response = await fetch(`https://localhost:7292/api/ExpApi/UpdateTransaction`, {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(transaction)
+                });
+                if (response.ok) {
+                    alert("Updated successfully");
+                    loadTransactions();
+                    const editModalEl = document.getElementById("editTransactionModal");
+                    const modal = bootstrap.Modal.getInstance(editModalEl);
+                    modal.hide();
+                } else {
+                    alert("Error updating transaction");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error updating transaction");
+            }
+        });
+
+        // Load data on page load
+        loadTransactions();
+    </script>
+}
